@@ -245,11 +245,6 @@ docs/Architecture.md
 
 ---
 
-# License
-
-This project is released under the MIT License.
-
----
 
 ## Project Vision
 
