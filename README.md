@@ -230,13 +230,18 @@ docs/Architecture.md
 
 ---
 
-# Team
+## Team
 
 **DeepSafe Development Team**
 
-FPGA & AI Chip Design Hackathon
+- Balaji K
+- Madhavan R
+- Nandavelan SPS
+- Om Sharma M
 
-Saveetha Engineering College
+**Institution:** Saveetha Engineering College  
+**Department:** Electronics and Communication Engineering (ECE)  
+**Platform:** PYNQ-Z2 (Xilinx Zynq-7020) 
 
 ---
 
