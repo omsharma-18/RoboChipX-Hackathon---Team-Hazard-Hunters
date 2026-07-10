@@ -53,134 +53,134 @@ Gas and flame (binary, debounce-style) need a completely different window semant
 Data flows top to bottom. Every block below is a distinct Verilog module (see Section 6 for the module table).
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│         EDGE AI SAFETY SYSTEM — CONFINED SPACE / MANHOLE                    │
-│                    (Fully Digital Sensor Acquisition)                       │
+┌──────────────────────────────────────────────────────────────────────────────┐
+│         EDGE AI SAFETY SYSTEM — CONFINED SPACE / MANHOLE                     │
+│                    (Fully Digital Sensor Acquisition)                        │
 │                                                                              │
-│  SYSTEM FSM: INIT → CALIBRATE → ACQUIRE → PROCESS → ALERT/FAULT             │
-│  (Gates everything below on sensor warm-up / readiness)                     │
-│                                    │                                        │
-│  ┌─────────────────────────────────┼────────────────────────────────────┐  │
-│  │           SENSOR ACQUISITION BLOCK (Mandatory Feature #1)            │  │
-│  │                                                                       │  │
-│  │  CH0: MQ-2 D0          CH1: Flame D0        CH2: Ultrasonic  CH3: DHT11 │
-│  │  Digital (LM393        Digital (LM393       Trigger+Echo     1-Wire   │
-│  │  comparator, onboard   comparator, onboard  pulse timing     bit-bang │
-│  │  threshold pot)        threshold pot)       (HC-SR04)        protocol │
-│  │  Binary: 0/1           Binary: 0/1          Multi-bit:       Multi-bit:│
-│  │                                             distance value   temp+hum │
-│  │       │                     │                    │              │     │
-│  │  ┌────┴─────────────────────┴────────────────────┴──────────────┴───┐ │  │
-│  │  │  2-FLOP SYNCHRONIZER (per async digital input — CDC safety)     │ │  │
-│  │  │  GPIO INPUT (MQ-2 D0, Flame D0 — direct binary read)             │ │  │
-│  │  │  GPIO TIMER (echo pulse width → distance, HC-SR04)               │ │  │
-│  │  │  GPIO BIT-BANG (drives/reads DHT11 single-bus → temp+humidity)   │ │  │
-│  │  └────┬───────────────────────────────────────────────────────────────┘ │  │
+│  SYSTEM FSM: INIT → CALIBRATE → ACQUIRE → PROCESS → ALERT/FAULT              │
+│  (Gates everything below on sensor warm-up / readiness)                      │
+│                                    │                                         │
+│  ┌─────────────────────────────────┼──────────────────────────────────────┐  │
+│  │           SENSOR ACQUISITION BLOCK (Mandatory Feature #1)              │  │
+│  │                                                                        │  │
+│  │  CH0: MQ-2 D0          CH1: Flame D0        CH2: Ultrasonic  CH3: DHT11│  │
+│  │  Digital (LM393        Digital (LM393       Trigger+Echo     1-Wire    │  │
+│  │  comparator, onboard   comparator, onboard  pulse timing     bit-bang  │  │
+│  │  threshold pot)        threshold pot)       (HC-SR04)        protocol  │  │
+│  │  Binary: 0/1           Binary: 0/1          Multi-bit:       Multi-bit:│  │
+│  │                                             distance value   temp+hum  │  │
+│  │       │                     │                    │              │      │  │
+│  │  ┌────┴─────────────────────┴────────────────────┴──────────────┴───┐  │  │
+│  │  │  2-FLOP SYNCHRONIZER (per async digital input — CDC safety)      │  │  │
+│  │  │  GPIO INPUT (MQ-2 D0, Flame D0 — direct binary read)             │  │  │
+│  │  │  GPIO TIMER (echo pulse width → distance, HC-SR04)               │  │  │
+│  │  │  GPIO BIT-BANG (drives/reads DHT11 single-bus → temp+humidity)   │  │  │
+│  │  └────┬─────────────────────────────────────────────────────────────┘  │  │
 │  └───────┼────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  FAULT DETECTOR (see Section 7 — MQ-2/Flame limitation acknowledged)  │  │
-│  │  • Ultrasonic echo timeout    → no return pulse in 30ms = blocked/dead│  │
-│  │  • DHT11 checksum fail        → 8-bit sum mismatch = corrupted read  │  │
-│  │  • DHT11 timeout              → no response = disconnected           │  │
-│  │  • MQ-2 / Flame: NO reliable stuck-at fault possible on D0-only mode │  │
-│  │    (binary '0' held long-term is indistinguishable from "safe")      │  │
-│  │  Any fault → alert_level = FAULT, disables MLP, hard-rules-only mode │  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  FAULT DETECTOR (see Section 7 — MQ-2/Flame limitation acknowledged)   │  │
+│  │  • Ultrasonic echo timeout    → no return pulse in 30ms = blocked/dead │  │
+│  │  • DHT11 checksum fail        → 8-bit sum mismatch = corrupted read    │  │
+│  │  • DHT11 timeout              → no response = disconnected             │  │
+│  │  • MQ-2 / Flame: NO reliable stuck-at fault possible on D0-only mode   │  │
+│  │    (binary '0' held long-term is indistinguishable from "safe")        │  │
+│  │  Any fault → alert_level = FAULT, disables MLP, hard-rules-only mode   │  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  SENSOR AGGREGATOR + TIMESTAMP                                        │  │
-│  │  • 32-bit free-running µs counter stamped onto every sample           │  │
-│  │  • 2-bit channel-ID tagging                                           │  │
-│  │  • Async FIFO for clock-domain crossing (sensor timing → 100 MHz core)│  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  SENSOR AGGREGATOR + TIMESTAMP                                         │  │
+│  │  • 32-bit free-running µs counter stamped onto every sample            │  │
+│  │  • 2-bit channel-ID tagging                                            │  │
+│  │  • Async FIFO for clock-domain crossing (sensor timing → 100 MHz core) │  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  4× INDEPENDENT WINDOWED FILTER (Mandatory Feature #2)                │  │
-│  │  CH0 Gas (binary):    window=64, majority-vote debounce               │  │
-│  │  CH1 Flame (binary):  window=16, majority-vote debounce               │  │
-│  │  CH2 Ultra (multi-bit): window=8,  true moving average (jitter)       │  │
-│  │  CH3 DHT11 (multi-bit): window=2,  true moving average (minimal)      │  │
-│  │  Implementation: circular buffer + running sum, power-of-2 shift div  │  │
-│  │  For binary channels: running_sum / window = "confidence fraction"    │  │
-│  │  Windows are runtime-configurable via AXI4-Lite (cfg_win_log2)        │  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  4× INDEPENDENT WINDOWED FILTER (Mandatory Feature #2)                 │  │
+│  │  CH0 Gas (binary):    window=64, majority-vote debounce                │  │
+│  │  CH1 Flame (binary):  window=16, majority-vote debounce                │  │
+│  │  CH2 Ultra (multi-bit): window=8,  true moving average (jitter)        │  │
+│  │  CH3 DHT11 (multi-bit): window=2,  true moving average (minimal)       │  │
+│  │  Implementation: circular buffer + running sum, power-of-2 shift div   │  │
+│  │  For binary channels: running_sum / window = "confidence fraction"     │  │
+│  │  Windows are runtime-configurable via AXI4-Lite (cfg_win_log2)         │  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  SAMPLE-RATE RECONCILIATION (Zero-Order Hold)                         │  │
-│  │  Problem: CH0≈10Hz, CH1≈50Hz, CH2≈33Hz, CH3≈1Hz — mismatched rates    │  │
-│  │  • Latches each channel's last valid filtered value                   │  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  SAMPLE-RATE RECONCILIATION (Zero-Order Hold)                          │  │
+│  │  Problem: CH0≈10Hz, CH1≈50Hz, CH2≈33Hz, CH3≈1Hz — mismatched rates     │  │
+│  │  • Latches each channel's last valid filtered value                    │  │
 │  │  • Forms one coherent 4-D vector, gated on ALL channels having been    │  │
-│  │    seen at least once (all_seen flag) AND CH3 (slowest) just updated  │  │
-│  │  • MLP effectively samples at 1 Hz, aligned to DHT11                  │  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  │    seen at least once (all_seen flag) AND CH3 (slowest) just updated   │  │
+│  │  • MLP effectively samples at 1 Hz, aligned to DHT11                   │  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  FEATURE EXTRACTOR (Mandatory Feature #3 — per channel)               │  │
-│  │  • Gas/Flame (binary): confidence fraction, assertion rate-of-change  │  │
-│  │  • Ultra/DHT11 (multi-bit): mean, max, min, peak-to-peak, rate-of-    │  │
-│  │    change, variance via Welford's online algorithm (2 registers)     │  │
-│  │  • No FFT — sensors are far too slow to need spectral analysis        │  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  FEATURE EXTRACTOR (Mandatory Feature #3 — per channel)                │  │
+│  │  • Gas/Flame (binary): confidence fraction, assertion rate-of-change   │  │
+│  │  • Ultra/DHT11 (multi-bit): mean, max, min, peak-to-peak, rate-of-     │  │
+│  │    change, variance via Welford's online algorithm (2 registers)       │  │
+│  │  • No FFT — sensors are far too slow to need spectral analysis         │  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  THRESHOLD DETECTOR (hard rules — life safety, non-negotiable layer)  │  │
-│  │  • Gas confidence fraction > CRITICAL_THRESH → immediate CRITICAL     │  │
-│  │  • Flame confidence fraction > CRITICAL_THRESH → immediate CRITICAL   │  │
-│  │  • All thresholds runtime-configurable via AXI4-Lite                  │  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  THRESHOLD DETECTOR (hard rules — life safety, non-negotiable layer)   │  │
+│  │  • Gas confidence fraction > CRITICAL_THRESH → immediate CRITICAL      │  │
+│  │  • Flame confidence fraction > CRITICAL_THRESH → immediate CRITICAL    │  │
+│  │  • All thresholds runtime-configurable via AXI4-Lite                   │  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  LIGHTWEIGHT ML: TINY MLP (4-8-4-2) in Q1.15 (Bonus: Edge AI)         │  │
-│  │  Input:  [gas_conf, flame_conf, ultra_norm, temp_norm]                │  │
-│  │  Hidden: 8 neurons → ReLU → 4 neurons → ReLU                          │  │
-│  │  Output: [safe_prob, unsafe_prob] → argmax = class                    │  │
-│  │  Weights: 72 total (32+32+8), Q1.15, BRAM-initialized from .coe file  │  │
-│  │  Training: PyTorch (float32) → post-training quantize to Q1.15 → .coe │  │
-│  │  Latency: ~100 cycles ≈ 1 µs @ 100 MHz                                │  │
-│  │  Disabled automatically when FAULT is active (falls back to rules)   │  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  LIGHTWEIGHT ML: TINY MLP (4-8-4-2) in Q1.15 (Bonus: Edge AI)          │  │
+│  │  Input:  [gas_conf, flame_conf, ultra_norm, temp_norm]                 │  │
+│  │  Hidden: 8 neurons → ReLU → 4 neurons → ReLU                           │  │
+│  │  Output: [safe_prob, unsafe_prob] → argmax = class                     │  │
+│  │  Weights: 72 total (32+32+8), Q1.15, BRAM-initialized from .coe file   │  │
+│  │  Training: PyTorch (float32) → post-training quantize to Q1.15 → .coe  │  │
+│  │  Latency: ~100 cycles ≈ 1 µs @ 100 MHz                                 │  │
+│  │  Disabled automatically when FAULT is active (falls back to rules)     │  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  CROSS-SENSOR FUSION ENGINE (Bonus: Multi-sensor fusion)              │  │
-│  │  • Gas + Flame               → EXPLOSION_RISK → CRITICAL              │  │
-│  │  • Gas + No Flame            → GAS_LEAK → WARNING                     │  │
-│  │  • Depth changed too fast    → FALL_DETECTED → CRITICAL               │  │
-│  │  • Temp-compensated ultrasonic (speed-of-sound correction, free)      │  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  CROSS-SENSOR FUSION ENGINE (Bonus: Multi-sensor fusion)               │  │
+│  │  • Gas + Flame               → EXPLOSION_RISK → CRITICAL               │  │
+│  │  • Gas + No Flame            → GAS_LEAK → WARNING                      │  │
+│  │  • Depth changed too fast    → FALL_DETECTED → CRITICAL                │  │
+│  │  • Temp-compensated ultrasonic (speed-of-sound correction, free)       │  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  HYBRID VOTER                                                         │  │
-│  │  IF hard_rule = CRITICAL           → CRITICAL (never overridden)      │  │
-│  │  IF hard_rule = NORMAL, ML=UNSAFE  → WARNING                          │  │
-│  │  IF hard_rule = NORMAL, ML=SAFE    → NORMAL                           │  │
-│  │  IF hard_rule and ML disagree      → WARNING (conservative default)   │  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  HYBRID VOTER                                                          │  │
+│  │  IF hard_rule = CRITICAL           → CRITICAL (never overridden)       │  │
+│  │  IF hard_rule = NORMAL, ML=UNSAFE  → WARNING                           │  │
+│  │  IF hard_rule = NORMAL, ML=SAFE    → NORMAL                            │  │
+│  │  IF hard_rule and ML disagree      → WARNING (conservative default)    │  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  OUTPUT ANALYTICS SYSTEM (Mandatory Feature #4)                       │  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  OUTPUT ANALYTICS SYSTEM (Mandatory Feature #4)                        │  │
 │  │  Digital outputs:                                                      │  │
-│  │   alert_level[1:0]   00=NORMAL 01=WARNING 10=CRITICAL 11=FAULT        │  │
-│  │   anomaly_type[3:0]  which sensor/fusion rule triggered (16 codes)    │  │
-│  │   confidence[7:0]    MLP probability, 0–255                           │  │
+│  │   alert_level[1:0]   00=NORMAL 01=WARNING 10=CRITICAL 11=FAULT         │  │
+│  │   anomaly_type[3:0]  which sensor/fusion rule triggered (16 codes)     │  │
+│  │   confidence[7:0]    MLP probability, 0–255                            │  │
 │  │   timestamp[31:0]    µs since boot                                     │  │
 │  │  Controller interface:                                                 │  │
 │  │   relay_trigger      cuts gas valve / ventilation / alarm circuit      │  │
 │  │   buzzer_pattern[2:0] off/slow/fast/urgent/evacuate                    │  │
-│  │   led_rgb[2:0]       green/yellow/red/flashing (onboard RGB LEDs)     │  │
+│  │   led_rgb[2:0]       green/yellow/red/flashing (onboard RGB LEDs)      │  │
 │  │   uart_tx            JSON-like telemetry → PYNQ Jupyter dashboard      │  │
 │  │   lora_tx_ready       optional gateway sync (non-critical path)        │  │
-│  └───────┬───────────────────────────────────────────────────────────────┘  │
+│  └───────┬────────────────────────────────────────────────────────────────┘  │
 │          │                                                                   │
-│  ┌───────┴───────────────────────────────────────────────────────────────┐  │
-│  │  AXI4-Lite CONFIG + STATUS INTERFACE (PS ↔ PL control plane)          │  │
+│  ┌───────┴────────────────────────────────────────────────────────────────┐  │
+│  │  AXI4-Lite CONFIG + STATUS INTERFACE (PS ↔ PL control plane)           │  │
 │  │  • Threshold registers (R/W from Zynq PS)                              │  │
 │  │  • Filter window config per channel (cfg_win_log2 ×4)                  │  │
 │  │  • MLP weight loading (streamed, no resynthesis needed to update)      │  │
 │  │  • Calibration offsets (set during CALIBRATE FSM state)                │  │
 │  │  • STATUS READBACK: alert_level, anomaly_type, confidence, timestamp,  │  │
 │  │    raw + filtered per-channel values — feeds the Jupyter dashboard     │  │
-│  └─────────────────────────────────────────────────────────────────────────┘  │
+│  └────────────────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
